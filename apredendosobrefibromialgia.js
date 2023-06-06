@@ -1,34 +1,98 @@
 const express = require("express")
 const router = express.Router()
+const cors = require('cors')
+const conectaBancoDeDados = require('./bancoDeDados')
+conectaBancoDeDados()
+
+const Livro = require('./apredendosobrefibromialgiaModel')
 
 const app = express()
+app.use(express.json())
+app.use(cors())
+
 const porta = 7777
 
-const apredendosobrefibromialgia = [
-    {
-        Nome: 'Fibromialgia sem mistérioFibromialgia sem mistério: um guia para pacientes, familiares e médicos',
-        autor: 'Manuel Martínez-Lavín',
-        categoria: 'Saúde e Família',
-        descricao: 'Este livro esclarece vários aspectos de um problema de saúde polêmico e ainda não totalmente compreendido nem mesmo pela classe médica: a fibromialgia. Apresenta os principais sinais e sintomas dessa doença, explica por que seu diagnóstico é tão difícil e apresenta alguns conceitos importantes que explicam a provável causa e as possibilidades de tratamento do problema.'
-    },
-    {
-        Nome: 'Fibromialgia: O Mal-estar do Século XXI',
-        autor: 'Rafael da Silva Mattos',
-        categoria: 'Medicina',
-        descricao: 'A proposta deste livro é contribuir para a compreensão de novas práticas terapêuticas corporais que possibilitem maior autonomia para pessoas com fibromialgia, produzindo novos sentidos e significados para o viver, ajudando seus portadores a romper com a solidão do sofrimento. Trata-se de uma obra dirigida tanto aos profissionais da área da Saúde, que poderão conhecer mais sobre o diagnóstico, os sintomas e os tratamentos para a fibromialgia, como às pessoas acometidas dessa patologia ou que lidam com alguém nessa condição.'
+//GET
+async function mostraApredendoSobreFibromialgia(request, response) {
+    try {
+        const apredendosobrefibromialgiaVindosDoBancoDeDados = await Livro.find()
+
+        response.json(apredendosobrefibromialgiaVindosDoBancoDeDados)
+    }catch(erro){
+        console.log(erro)
     }
-]
-
-
-function mostraApredendoSobreFibromialgia(request, response) {
-    response.json(apredendosobrefibromialgia)
 }
 
+//POST
+async function criaLivro(request, response) {
+    const novoLivro = new Livro({
+        nome: request.body.nome,
+        imagem: request.body.imagem, 
+        autor: request.body.autor,
+        categoria: request.body.categoria,
+        descricao: request.body.descricao
+    })
 
+    try {
+        const livroCriado = await novoLivro.save()
+        response.status(201).json(livroCriado)
+    }catch(erro) {
+        console.log(erro)
+    }
+}
+//PATCH
+async function corrigeLivro(request, response) {
+    try {
+        const livroEncontrado = await Livro.findById(request.params.id)
+
+        if (request.body.nome) {
+            livroEncontrado.nome = request.body.nome
+          }
+    
+          if (request.body.autor) {
+            livroEncontrado.autor = request.body.autor
+          }
+    
+          if (request.body.imagem) {
+            livroEncontrado.imagem = request.body.imagem
+          }
+    
+          if (request.body.categoria) {
+            livroEncontrado.categoria = request.body.categoria
+          }
+    
+          if (request.body.descricao) {
+            livroEncontrado.descricao = request.body.descricao
+          }
+
+          const livroAtualizadoNoBancoDeDados = await livroEncontrado.save()
+
+          response.json(livroAtualizadoNoBancoDeDados)
+
+    }catch(erro) {
+        console.log(erro)
+    }
+}
+
+//DELETE
+async function deletaLivro(request, response) {
+    try {
+        await Livro.findByIdAndDelete(request.params.id)
+        response.json({mensagem: 'Livro deletado com sucesso!'})
+    }catch(erro) {
+        console.log(erro)
+    }
+
+}
+
+//PORTA
 function mostraPorta() {
     console.log("Servidor criado e iniciado na porta", porta)
 }
 
 
 app.use(router.get('/apredendosobrefibromialgia', mostraApredendoSobreFibromialgia))
+app.use(router.post('/apredendosobrefibromialgia', criaLivro))
+app.use(router.patch('/apredendosobrefibromialgia/:id', corrigeLivro))
+app.use(router.delete('/apredendosobrefibromialgia/:id', deletaLivro))
 app.listen(porta, mostraPorta)
